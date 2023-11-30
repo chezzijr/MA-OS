@@ -47,6 +47,35 @@ struct pcb_t * get_mlq_proc(void) {
 	/*TODO: get a process from PRIORITY [ready_queue].
 	 * Remember to use lock to protect the queue.
 	 * */
+    pthread_mutex_lock(&queue_lock);
+
+    // policy: each queue has only fixed slot to use the CPU
+    // when it is used up, the system must change the resource to the other process
+    // in the next queue and leave the remaining work for future slot even though
+    // it needs a completed round of ready_queue
+    // slot = MAX_PRIO - prio
+
+    // states
+    static unsigned prio = 0;
+    static unsigned slot = MAX_PRIO;
+
+    // transition
+    unsigned curr_prio = prio;
+    while (empty(&mlq_ready_queue[prio]) || slot == 0) {
+        prio = (prio + 1) % MAX_PRIO;
+        slot = MAX_PRIO - prio;
+        if (curr_prio == prio) {
+            // no process to run
+            pthread_mutex_unlock(&queue_lock);
+            return NULL;
+        }
+    }
+
+    // get the process
+    proc = dequeue(&mlq_ready_queue[prio]);
+    slot--;
+
+    pthread_mutex_unlock(&queue_lock);
 	return proc;	
 }
 
@@ -79,6 +108,13 @@ struct pcb_t * get_proc(void) {
 	/*TODO: get a process from [ready_queue].
 	 * Remember to use lock to protect the queue.
 	 * */
+    pthread_mutex_lock(&queue_lock);
+    if (empty(&ready_queue)) {
+        pthread_mutex_unlock(&queue_lock);
+        return NULL;
+    }
+    proc = dequeue(&ready_queue);
+    pthread_mutex_unlock(&queue_lock);
 	return proc;
 }
 
