@@ -88,7 +88,7 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size,
 
 	/* TODO get_free_vmrg_area FAILED handle the region management (Fig.6)*/
 
-	/*Attempt to increate limit to get space */
+	/*Attempt to increase limit to get space */
 	struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
 	int inc_sz = PAGING_PAGE_ALIGNSZ(size);
 	// int inc_limit_ret
