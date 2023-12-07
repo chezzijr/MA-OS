@@ -14,7 +14,7 @@
  *@rg_elmt: new region
  *
  */
-int enlist_vm_freerg_list(struct mm_struct *mm, struct vm_rg_struct* rg_elmt) {
+int enlist_vm_freerg_list(struct mm_struct *mm, struct vm_rg_struct *rg_elmt) {
 	struct vm_rg_struct *rg_node = mm->mmap->vm_freerg_list;
 
 	if (rg_elmt->rg_start >= rg_elmt->rg_end)
@@ -105,6 +105,15 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size,
 	caller->mm->symrgtbl[rgid].rg_start = old_sbrk;
 	caller->mm->symrgtbl[rgid].rg_end = old_sbrk + size;
 
+    // got region at new limit (Fig 6)
+    if (old_sbrk + size < cur_vma->sbrk) {
+        struct vm_rg_struct *newrgnode = malloc(sizeof(struct vm_rg_struct));
+        newrgnode->rg_start = old_sbrk + size;
+        newrgnode->rg_end = cur_vma->sbrk;
+        newrgnode->rg_next = NULL;
+        enlist_vm_freerg_list(caller->mm, newrgnode);
+    }
+
 	*alloc_addr = old_sbrk;
 
 	return 0;
@@ -118,20 +127,20 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size,
  *
  */
 int __free(struct pcb_t *caller, int vmaid, int rgid) {
-	struct vm_rg_struct* rgnode;
+	struct vm_rg_struct *rgnode;
 
 	if (rgid < 0 || rgid > PAGING_MAX_SYMTBL_SZ)
 		return -1;
 
 	/* TODO: Manage the collect freed region to freerg_list */
-    rgnode = malloc(sizeof(struct vm_rg_struct));
-    rgnode->rg_start = caller->mm->symrgtbl[rgid].rg_start;
-    rgnode->rg_end = caller->mm->symrgtbl[rgid].rg_end;
+	rgnode = malloc(sizeof(struct vm_rg_struct));
+	rgnode->rg_start = caller->mm->symrgtbl[rgid].rg_start;
+	rgnode->rg_end = caller->mm->symrgtbl[rgid].rg_end;
 
-    // invalidate the region in symrgtbl
-    caller->mm->symrgtbl[rgid].rg_start = 0;
-    caller->mm->symrgtbl[rgid].rg_end = 0;
-    caller->mm->symrgtbl[rgid].rg_next = NULL;
+	// invalidate the region in symrgtbl
+	caller->mm->symrgtbl[rgid].rg_start = 0;
+	caller->mm->symrgtbl[rgid].rg_end = 0;
+	caller->mm->symrgtbl[rgid].rg_next = NULL;
 
 	/*enlist the obsoleted memory region */
 	enlist_vm_freerg_list(caller->mm, rgnode);
@@ -181,14 +190,17 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller) {
 
 		/* TODO: Play with your paging theory here */
 		/* Find victim page */
-		find_victim_page(caller->mm, &vicpgn);
+		if (find_victim_page(caller->mm, &vicpgn) == -1) {
+            perror("find_victim_page failed\n");
+            return -1;
+        }
 
 		/* Get free frame in MEMSWP */
-		MEMPHY_get_freefp(caller->active_mswp, &swpfpn);
+		// MEMPHY_get_freefp(caller->active_mswp, &swpfpn);
 
 		/* Do swap frame from MEMRAM to MEMSWP and vice versa*/
 		/* Copy victim frame to swap */
-		//__swap_cp_page();
+		// __swap_cp_page();
 		/* Copy target frame from swap to mem */
 		//__swap_cp_page();
 
@@ -439,9 +451,17 @@ int find_victim_page(struct mm_struct *mm, int *retpgn) {
 	struct pgn_t *pg = mm->fifo_pgn;
 
 	/* TODO: Implement the theorical mechanism to find the victim page */
+	// we implement page replacement algorithm here
+	// we use FIFO algorithm
 
+	if (pg == NULL) {
+		*retpgn = -1;
+		return -1;
+	}
+
+	*retpgn = pg->pgn;
+	mm->fifo_pgn = pg->pg_next;
 	free(pg);
-
 	return 0;
 }
 
