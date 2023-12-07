@@ -1,4 +1,4 @@
-# Simple Operating System in C
+# Simple Operating System in C (WIP)
 - A major assignment from VNU - HCMUT
 - Course: Operating System - CO2017
 
@@ -8,3 +8,7 @@
 
 `mm-vm.c`
 - `enlist_vm_freerg_list(...)` use address of a stack-based variable `rg_elmt` for a linked list
+
+# Proposed fix
+`mm-vm.c`
+- `enlist_vm_freerg_list(...)` use a pointer instead, caller `__free(...)` in the same file will have to allocate `rgnode`
