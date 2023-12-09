@@ -100,12 +100,26 @@ int vmap_page_range(
 	 *      [addr to addr + pgnum*PAGING_PAGESZ
 	 *      in page table caller->mm->pgd[]
 	 */
+    int ret_val = 0;
+    for (pgit = 0; pgit < pgnum; pgit++) {
+        if (fpit == NULL) {
+            // out of frames while still have pages to map
+            ret_val = -1;
+            break;
+        }
+        int fpn = fpit->fpn;
+        uint32_t *pte = &caller->mm->pgd[pgn + pgit];
+        pte_set_fpn(pte, fpn);
+        fpit = fpit->fp_next;
 
-	/* Tracking for later page replacement activities (if needed)
-	 * Enqueue new usage page */
-	enlist_pgn_node(&caller->mm->fifo_pgn, pgn + pgit);
+        /* Tracking for later page replacement activities (if needed)
+         * Enqueue new usage page */
+        enlist_pgn_node(&caller->mm->fifo_pgn, pgn + pgit);
+    }
 
-	return 0;
+    ret_rg->rg_end = addr + pgit * PAGING_PAGESZ;
+
+	return ret_val;
 }
 
 /*
@@ -130,7 +144,8 @@ int alloc_pages_range(struct pcb_t *caller, int req_pgnum,
             newfp_head = newfp_node;
 		} else { // ERROR CODE of obtaining somes but not enough frames
             // return allocated frames, but not enough
-            ret_val = -1;
+            // out of memory
+            ret_val = -3000;
             break;
 		}
 	}
