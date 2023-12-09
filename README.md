@@ -9,6 +9,9 @@
 `mm-vm.c`
 - `enlist_vm_freerg_list(...)` use address of a stack-based variable `rg_elmt` for a linked list
 
+`mm.c`
+- `alloc_pages_range(...)` is not TODO even though function does not have implementation (`if` block)
+
 # Proposed fix
 `mm-vm.c`
 - `enlist_vm_freerg_list(...)` use a pointer instead, caller `__free(...)` in the same file will have to allocate `rgnode`
