@@ -86,6 +86,7 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size,
 		return 0;
 	}
 
+
 	/* TODO get_free_vmrg_area FAILED handle the region management (Fig.6)*/
 
 	/*Attempt to increase limit to get space */
@@ -191,7 +192,7 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller) {
 		/* TODO: Play with your paging theory here */
 		/* Find victim page */
 		if (find_victim_page(caller->mm, &vicpgn) == -1) {
-            perror("find_victim_page failed\n");
+            perror("find_victim_page failed, maybe no page allocated\n");
             return -1;
         }
         vicpte = caller->mm->pgd[vicpgn];
@@ -214,6 +215,8 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller) {
         pte_set_fpn(&mm->pgd[pgn], vicfpn);
 
 		enlist_pgn_node(&caller->mm->fifo_pgn, pgn);
+
+        MEMPHY_put_freefp(caller->active_mswp, tgtfpn);
 	}
 
 	*fpn = PAGING_FPN(pte);
@@ -402,7 +405,14 @@ int validate_overlap_vm_area(struct pcb_t *caller, int vmaid, int vmastart,
 	struct vm_area_struct *vma = caller->mm->mmap;
 
 	/* TODO validate the planned memory area is not overlapped */
+
+    // there is a case where vma->vm_start == vma->vm_end
+    // we need to handle this case
 	while (vma != NULL) {
+        if (vma->vm_start == vma->vm_end) {
+            vma = vma->vm_next;
+            continue;
+        }
 		if ((vma->vm_start <= vmastart && vmastart <= vma->vm_end) ||
 			(vma->vm_start <= vmaend && vmaend <= vma->vm_end)) {
 			return -1;
