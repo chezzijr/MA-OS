@@ -152,6 +152,7 @@ int MEMPHY_dump(struct memphy_struct *mp) {
 	/*TODO dump memphy contnt mp->storage
 	 *     for tracing the memory content
 	 */
+    printf("---MEM DUMP---\n");
     uint32_t* word_storage = (uint32_t*)mp->storage;
     int i;
     for (i = 0; i < mp->maxsz / 4; i++)
