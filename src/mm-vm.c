@@ -14,17 +14,20 @@
  *@rg_elmt: new region
  *
  */
-int enlist_vm_freerg_list(struct mm_struct *mm, struct vm_rg_struct *rg_elmt) {
+int enlist_vm_freerg_list(struct mm_struct *mm, struct vm_rg_struct rg_elmt) {
 	struct vm_rg_struct *rg_node = mm->mmap->vm_freerg_list;
 
-	if (rg_elmt->rg_start >= rg_elmt->rg_end)
+	if (rg_elmt.rg_start >= rg_elmt.rg_end)
 		return -1;
 
+    struct vm_rg_struct *newrg = malloc(sizeof(struct vm_rg_struct));
+    newrg->rg_start = rg_elmt.rg_start;
+    newrg->rg_end = rg_elmt.rg_end;
 	if (rg_node != NULL)
-		rg_elmt->rg_next = rg_node;
+		newrg->rg_next = rg_node;
 
 	/* Enlist the new region */
-	mm->mmap->vm_freerg_list = rg_elmt;
+	mm->mmap->vm_freerg_list = newrg;
 
 	return 0;
 }
@@ -108,10 +111,9 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size,
 
     // got region at new limit (Fig 6)
     if (old_sbrk + size < cur_vma->sbrk) {
-        struct vm_rg_struct *newrgnode = malloc(sizeof(struct vm_rg_struct));
-        newrgnode->rg_start = old_sbrk + size;
-        newrgnode->rg_end = cur_vma->sbrk;
-        newrgnode->rg_next = NULL;
+        struct vm_rg_struct newrgnode = { .rg_start = old_sbrk + size,
+                                          .rg_end = cur_vma->sbrk,
+                                          .rg_next = NULL };
         enlist_vm_freerg_list(caller->mm, newrgnode);
     }
 
@@ -128,15 +130,15 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size,
  *
  */
 int __free(struct pcb_t *caller, int vmaid, int rgid) {
-	struct vm_rg_struct *rgnode;
 
 	if (rgid < 0 || rgid > PAGING_MAX_SYMTBL_SZ)
 		return -1;
 
 	/* TODO: Manage the collect freed region to freerg_list */
-	rgnode = malloc(sizeof(struct vm_rg_struct));
-	rgnode->rg_start = caller->mm->symrgtbl[rgid].rg_start;
-	rgnode->rg_end = caller->mm->symrgtbl[rgid].rg_end;
+    struct vm_rg_struct rgnode = {
+        .rg_start = caller->mm->symrgtbl[rgid].rg_start,
+        .rg_end = caller->mm->symrgtbl[rgid].rg_end,
+    };
 
 	// invalidate the region in symrgtbl
 	caller->mm->symrgtbl[rgid].rg_start = 0;
