@@ -5,6 +5,7 @@
  */
 
 #include "mm.h"
+#include <stdio.h>
 #include <stdlib.h>
 
 /*
@@ -151,6 +152,12 @@ int MEMPHY_dump(struct memphy_struct *mp) {
 	/*TODO dump memphy contnt mp->storage
 	 *     for tracing the memory content
 	 */
+    printf("---MEM DUMP---\n");
+    uint32_t* word_storage = (uint32_t*)mp->storage;
+    int i;
+    for (i = 0; i < mp->maxsz / 4; i++)
+        if (word_storage[i] != 0)
+            printf("%08x: %08x\n", i * 4, word_storage[i]);
 
 	return 0;
 }

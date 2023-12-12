@@ -86,7 +86,7 @@ int vmap_page_range(
 	struct vm_rg_struct *ret_rg)	// return mapped region, the real mapped fp
 {									// no guarantee all given pages are mapped
 	// uint32_t * pte = malloc(sizeof(uint32_t));
-	struct framephy_struct *fpit = malloc(sizeof(struct framephy_struct));
+	// struct framephy_struct *fpit = malloc(sizeof(struct framephy_struct));
 	// int  fpn;
 	int pgit = 0;
 	int pgn = PAGING_PGN(addr);
@@ -94,18 +94,33 @@ int vmap_page_range(
 	ret_rg->rg_end = ret_rg->rg_start =
 		addr; // at least the very first space is usable
 
-	fpit->fp_next = frames;
+	// fpit->fp_next = frames;
 
 	/* TODO map range of frame to address space
 	 *      [addr to addr + pgnum*PAGING_PAGESZ
 	 *      in page table caller->mm->pgd[]
 	 */
+    struct framephy_struct *fpit = frames;
+    int ret_val = 0;
+    for (pgit = 0; pgit < pgnum; pgit++) {
+        if (fpit == NULL) {
+            // out of frames while still have pages to map
+            ret_val = -1;
+            break;
+        }
+        int fpn = fpit->fpn;
+        uint32_t *pte = &caller->mm->pgd[pgn + pgit];
+        pte_set_fpn(pte, fpn);
+        fpit = fpit->fp_next;
 
-	/* Tracking for later page replacement activities (if needed)
-	 * Enqueue new usage page */
-	enlist_pgn_node(&caller->mm->fifo_pgn, pgn + pgit);
+        /* Tracking for later page replacement activities (if needed)
+         * Enqueue new usage page */
+        enlist_pgn_node(&caller->mm->fifo_pgn, pgn + pgit);
+    }
 
-	return 0;
+    ret_rg->rg_end = addr + pgit * PAGING_PAGESZ;
+
+	return ret_val;
 }
 
 /*
@@ -118,16 +133,27 @@ int vmap_page_range(
 int alloc_pages_range(struct pcb_t *caller, int req_pgnum,
 					  struct framephy_struct **frm_lst) {
 	int pgit, fpn;
-	// struct framephy_struct *newfp_str;
+	struct framephy_struct *newfp_head = NULL;
+    int ret_val = 0;
 
 	for (pgit = 0; pgit < req_pgnum; pgit++) {
 		if (MEMPHY_get_freefp(caller->mram, &fpn) == 0) {
-
+            struct framephy_struct *newfp_node = malloc(sizeof(struct framephy_struct));
+            newfp_node->fpn = fpn;
+            newfp_node->owner = caller->mm;
+            newfp_node->fp_next = newfp_head;
+            newfp_head = newfp_node;
 		} else { // ERROR CODE of obtaining somes but not enough frames
+            // return allocated frames, but not enough
+            // out of memory
+            ret_val = -3000;
+            break;
 		}
 	}
 
-	return 0;
+    *frm_lst = newfp_head;
+
+	return ret_val;
 }
 
 /*
