@@ -19,9 +19,9 @@ Time slot   7
 Time slot   8
 	CPU 0: Put process  3 to run queue
 	CPU 0: Dispatched process  3
+Time slot   9
 	CPU 1: Put process  2 to run queue
 	CPU 1: Dispatched process  2
-Time slot   9
 Time slot  10
 	CPU 1: Processed  2 has finished
 	CPU 1: Dispatched process  1

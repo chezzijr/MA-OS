@@ -148,7 +148,7 @@ static void read_config(const char *path) {
 #ifdef MM_PAGING
 	int sit;
 #ifdef MM_FIXED_MEMSZ
-	/* We provide here a back compatible with legacy OS simulatiom config file
+	/* We provide here a back compatible with legacy OS simulation config file
 	 * In which, it have no addition config line for Mema, keep only one line
 	 * for legacy info
 	 *  [time slice] [N = Number of CPU] [M = Number of Processes to be run]

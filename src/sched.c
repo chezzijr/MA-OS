@@ -51,19 +51,46 @@ struct pcb_t *get_mlq_proc(void) {
     static int curr_slot = MAX_PRIO;
 	pthread_mutex_lock(&queue_lock);
 
-    if (queue_empty() == -1) {
-        if (curr_slot <= 0) {
-            curr_prio = (curr_prio + 1) % MAX_PRIO;
-            curr_slot = MAX_PRIO - curr_prio;
-        }
+    if (queue_empty() != -1) {
+        pthread_mutex_unlock(&queue_lock);
+        return NULL;
+    }
 
-        while (empty(&mlq_ready_queue[curr_prio])) {
-            curr_prio = (curr_prio + 1) % MAX_PRIO;
-            curr_slot = MAX_PRIO - curr_prio;
-        }
+    // get the process with greatest priority
+    for (int i = 0; i < curr_prio; i++) {
+        if (!empty(&mlq_ready_queue[i])) {
+            curr_prio = i;
+            curr_slot = MAX_PRIO - i - 1;
+            proc = dequeue(&mlq_ready_queue[i]);
 
+            pthread_mutex_unlock(&queue_lock);
+            return proc;
+        }
+    }
+
+    // if there is a process with the same priority and curr_slot > 0
+    if (!empty(&mlq_ready_queue[curr_prio]) && curr_slot > 0) {
         proc = dequeue(&mlq_ready_queue[curr_prio]);
         curr_slot--;
+        pthread_mutex_unlock(&queue_lock);
+        return proc;
+    }
+
+    // slot went out, check for the next priority
+    for (int i = curr_prio + 1; i < MAX_PRIO; i++) {
+        if (!empty(&mlq_ready_queue[i])) {
+            curr_prio = i;
+            curr_slot = MAX_PRIO - i - 1;
+            proc = dequeue(&mlq_ready_queue[i]);
+
+            pthread_mutex_unlock(&queue_lock);
+            return proc;
+        }
+    }
+
+    // last resort, forced to get the process with the current priority
+    if (!empty(&mlq_ready_queue[curr_prio])) {
+        proc = dequeue(&mlq_ready_queue[curr_prio]);
     }
 
 	pthread_mutex_unlock(&queue_lock);
