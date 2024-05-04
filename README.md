@@ -1,6 +1,10 @@
-# Simple Operating System in C (WIP)
+# Simple Operating System in C
 - A major assignment from VNU - HCMUT
 - Course: Operating System - CO2017
+This assignment aimed to familiarize students with scheduling and dispatching in Operating System, along with memory allocation strategy and paging technique.
+
+# Update May 4th
+- Fix the scheduling algorithm
 
 # Initial issues with given source code
 `sched.c`
